@@ -1,28 +1,25 @@
-I've prepared the SupplyChain X Database Design & Complete Data Package – v2.3 for Azure Database for PostgreSQL Flexible Server.
+Please fix the shipment quantity inconsistencies in the SupplyChain X synthetic seed dataset before proceeding with backend integration.
 
-This extends the earlier database seed pack and aligns the data model with the latest v2.2 decisions: SCX-04 flagship, nine-stage workflow, seven agents, parallel assessments, recovery planning, approval and simulation.
+The review identified 38 shipments where shipment_items.quantity exceeds the corresponding purchase_order_lines.ordered_qty.
 
-1. Download the complete database package
-2. Database design document
-3. PostgreSQL schema – standalone
-4. What is included?
-   <img width="427" height="483" alt="image" src="https://github.com/user-attachments/assets/6ace3a82-2636-468f-8c0f-72949fffa8c4" />
-The runtime workflow tables are intentionally empty initially. They will receive records as the backend executes investigations and recovery workflows.
+Important: Do not simply cap each shipment row individually. Multiple shipments can fulfil the same PO line.
 
-5. Flagship data – SCX-04
-I checked the existing CSV records rather than simply copying the earlier illustrative UI values.
-<img width="479" height="298" alt="image" src="https://github.com/user-attachments/assets/a169ff62-af36-4128-96f9-5d6a34ef2344" />
+Implement the following:
 
+1. Identify all affected PO lines using the aggregate shipment quantity grouped by po_line_id.
+2. Correct shipment quantities so that the SUM of shipment_items.quantity across all shipments linked to a PO line does not exceed its ordered_qty, unless an explicit approved over-delivery allowance exists.
+3. Preserve realistic partial shipments and distribute quantities across multiple shipments where applicable.
+4. Preserve original PO ordered quantities and shipment-to-PO relationships.
+5. Do not change the canonical flagship incident SCX-04 / INC-2026-001 unless an independent validation identifies an issue.
+6. Add both individual and aggregate shipment fulfilment checks to validation.sql and validation_v2_3.sql.
+7. Add a data-quality report listing affected PO lines, old quantities, corrected quantities and the remediation performed.
+8. Re-run all database validation scripts after correction.
 
-All these company-specific records are synthetic demo data. The existing CSV dataset does not provide a complete recovery budget, expedite premium, CO₂e value or verified coordinates, so I have not invented them.
+Acceptance criteria:
+- Zero unintended PO-line over-fulfilment cases.
+- Zero invalid shipment-to-PO references.
+- All existing foreign-key constraints pass.
+- Flagship incident data remains unchanged.
+- All seed CSV files and SQL loaders produce consistent results.
 
-Important: The database package has been generated, but it has not yet been executed against your Azure PostgreSQL server.
-
-6. Let's load it into Azure
-The recommended sequence is:
-1. Create the SupplyChainX database on your Flexible Server.
-2. Extract the ZIP package.
-3. Execute sql/schema.sql.
-4. Execute sql/load_all.sql.
-5. Execute sql/validation.sql and sql/validation_v2_3.sql.
-The README inside the ZIP contains the commands.
+Please regenerate the complete ZIP package and update the dataset manifest with the corrected record counts and validation results. Do not claim successful validation until the scripts have actually been executed.
