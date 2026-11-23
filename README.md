@@ -1,44 +1,53 @@
-The central design change is:
-- investigations becomes the parent entity.
-- incidents continues to represent actual disruptions.
-- Existing purchase orders and shipments remain unchanged.
-- All three investigation types use the same workflow and seven AI agents.
-1. Download the complete package
-2. What has changed?
+Investigate the shipment quantity over-fulfilment discrepancy in the SupplyChain X database.
 
-<img width="325" height="131" alt="image" src="https://github.com/user-attachments/assets/6bae8797-3e1a-4636-aad5-f8f297ac3613" />
+Context:
+- An earlier validation reported 38 out of 350 shipment rows with quantity over-fulfilment.
+- A subsequent re-run of the same validation reportedly returned zero rows.
+- We need to establish why these results differ.
 
-Existing workflow, agent, assessment, recovery and simulation records now gain an investigation_id.
+Tasks:
 
-<img width="665" height="319" alt="image" src="https://github.com/user-attachments/assets/8e38bcf3-8b17-4f45-a7ee-41af8ed76d26" />
+1. Inspect the actual database schema, shipment data, purchase order lines and existing validation SQL.
+2. Identify the exact SQL query used for the original 38-row result and the subsequent zero-row result.
+3. Verify the individual shipment quantity rule:
+   shipment item quantity must not exceed its associated PO line ordered quantity, unless an approved overdelivery allowance exists.
+4. Verify the aggregate fulfilment rule:
+   SUM of quantities across all shipments for a PO line must not exceed the ordered quantity, unless an approved allowance exists.
+5. Check joins, filters, data types, units of measurement, NULL values and shipment-to-PO relationships.
+6. Reproduce both results against the same database snapshot.
+7. Generate a report containing:
+   - PO ID and PO line ID
+   - Ordered quantity
+   - Individual shipment quantities
+   - Aggregate shipped quantity
+   - Over-fulfilment amount
+   - Shipment IDs
+   - Validation result
 
-The package also includes:
-- Database relationship diagram.
-- Proposed API contracts.
-- Updated README and installation instructions.
-- Fresh-install convenience script.
-- v2.4 validation SQL.
-- Investigation summary views.
-- Updated dataset manifest.
-4. How to apply the migration
-For your Azure Database for PostgreSQL Flexible Server, use this order:
-1. Back up your existing database.
-2. Test on a development database.
-3. Apply the v2.3 baseline schema and seed if creating a fresh database.
-4. Execute the v2.4 migration.
-5. Execute the v2.4 seed update.
-6. Create the optional read-model views.
-7. Execute the validation script.
-The package includes sql/install_fresh_v2_4.sql for a fresh development installation.
+Important restrictions:
+- Do not modify, delete or cap any shipment quantities.
+- Do not change PO quantities.
+- Do not modify the SCX-04 flagship scenario.
+- Do not change the v2.4 migration.
+- Do not report the issue as resolved until the results are reproducible.
 
-Important: The migration backfills one investigation for every existing incident, including INV-INC-2026-001 for the SCX-04 flagship. It does not duplicate or rewrite the operational PO, shipment or inventory data.
+Deliver the root cause, corrected validation SQL, and a before/after data-quality report. If there are no violations, explain why the earlier 38-row result was different.
 
-5. Three things to verify before backend development
-- [x] All existing incidents have a corresponding investigation.
-- [x] INV-INC-2026-001 correctly links to SCX-04, PO-1007 and SHIP-209.
-- [x] Workflow runs and recovery plans can be created for an investigation with no incident_id.
-One additional point: the previously identified shipment quantity inconsistencies are not silently corrected by this migration. Keep the shipment fulfilment data-quality fix as a separate task.
+Step 2 – Decide based on the result
+Investigation result :	What to do
+38 violations confirmed :	Correct the affected synthetic seed data with an auditable correction script
+Aggregate violations only :	Correct shipment allocations across multiple shipments
+No violations found :	Document the earlier result as an incorrect or outdated validation finding
+Different database snapshots :	Identify the authoritative dataset and rerun all validations
 
-The SQL and migration package have been generated, but I have not run them against your Azure PostgreSQL server. Please test on a development copy first.
+Step 3 – Protect the v2.4 migration
+For now:
+- Keep the v2.4 migration unchanged.
+- Don't manually update the 38 shipment records.
+- Don't discard the existing validation warning without evidence.
+- Run the complete database validation after resolving the discrepancy.
+My recommendation
+Treat this as a data-quality investigation separate from the v2.4 schema migration. This keeps the migration focused on its purpose: introducing investigations as the parent entity.
 
-My recommendation: Freeze the v2.4 data model after these validation checks pass. Then update the backend API contracts and Replit UI to use investigation_id as the common identifier. This will prevent us from having to redesign the database again when we add existing-order and proactive-scenario workflows.
+Once you receive the SQL results from your coding assistant, share them here. I'll help determine whether the data needs correction and provide the appropriate SQL correction script.
+  
