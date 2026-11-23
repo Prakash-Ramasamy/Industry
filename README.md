@@ -30,6 +30,9 @@ Human-controlled decisions
 
 Plans pass deterministic validation and require human approval.
 
+<img width="1672" height="941" alt="SupplyChain X Resilience Overview" src="https://github.com/user-attachments/assets/67c12178-e719-409f-a409-a9cee5d39acb" />
+
+
 
 These are capability statements, not measured performance claims. Avoid presenting them as proven ROI or accuracy metrics.
 5. Business value
